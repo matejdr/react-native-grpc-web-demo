@@ -1,0 +1,176 @@
+syntax = "proto3";
+package teletubby.v1;
+
+service TelemetryReceiver {
+    // Register the receiver supports bidirectional streaming. Receiver side telemetry ack is supported under bidrectional stream now
+    // TODO: merge request telemetry and telemetry query in to ReceiverStreamMessage
+    rpc RegisterStreamReceiver(stream ReceiverStreamMessage) returns (stream TelemetryStreamMessage) {}
+
+    rpc RequestTelemetry(TelemetryRequest) returns (TelemetryRequestAck) {}
+
+    // Through telemetry query, user can specify the query of the callsign with the predicates. The subscriber can subscribe to telemetry sources from dynamic callsigns.
+    // Multiple calls to RequestTelemetryQuery with same subscribe ID will overwrite the query from previous requests. 
+    rpc RequestTelemetryQuery(TelemetryQueryRequest) returns (TelemetryRequestAck) {}
+}
+
+// Will be deprecated in the future
+service TelemetryGateway {
+    rpc RegisterSender(RegistrationMessage) returns (stream ConfigMessage) {}
+    rpc RegisterReceiver(RegistrationMessage) returns (stream TelemetryMessage) {}
+    rpc SendTelemetry(stream TelemetryMessage) returns (TelemetryStreamAck) {}
+    rpc SendTelemetryMessage(TelemetryMessage) returns (TelemetryMessageAck) {}
+
+    rpc RequestTelemetry(TelemetryRequest) returns (TelemetryRequestAck) {}
+
+    // Through telemetry query, user can specify the query of the callsign with the predicates. The subscriber can subscribe to telemetry sources from dynamic callsigns.
+    // Multiple calls to RequestTelemetryQuery with same subscribe ID will overwrite the query from previous requests. 
+    rpc RequestTelemetryQuery(TelemetryQueryRequest) returns (TelemetryRequestAck) {}
+}
+
+// The Telemetry message envolop which conatins the actual telemetry data
+message TelemetryMessage {
+    string source = 1;
+    bytes payload = 2;
+    string callsign = 3;
+    int64 created = 4;
+    uint64 seq = 5;
+    map<string,string> meta = 6;
+    string uid = 7;
+}
+
+message ReceiverStreamMessage {
+	oneof content {
+        Heartbeat heartbeat = 1;
+        TelemetryMessageAck ack = 2;
+	}
+}
+
+message TelemetryStreamMessage {
+	oneof content {
+        Heartbeat heartbeat = 1;
+        TelemetryMessage message = 2;
+    }
+    bool isAckable = 3;
+}
+
+enum TelemetryAckStatus {
+    OK = 0;
+    REJECT = 1;
+}
+
+message TelemetryMessageAck {
+    string uid = 1; // uid of the telemetry message
+    TelemetryAckStatus status = 2; // Status of the message delivery
+    bool noRetry =3; // Specify if system needs to skip retry the delivery when message is rejected. It will be ignored if status is Ok. Default is retry faile message
+}
+
+message TelemetryStreamAck {
+}
+
+message ConfigMessage {
+    repeated ConfigAction requestedActions = 2;
+}
+
+message ConfigAction {
+    string operation = 1;
+    repeated string sources = 2;
+}
+
+message TelemetryRequest {
+    string subscriberId = 1;
+    repeated TelemetryAction requestedActions = 2;
+}
+
+// Telemtry query request supports one query for each unique subscriberId.
+message TelemetryQueryRequest {
+    string subscriberId = 1;
+    string operation = 2;
+    Query callsignQuery = 3; // use the callsign query to provide dynamic telementry query subscription
+    repeated string sources = 4;
+}
+
+message TelemetryAction {
+    string operation = 1; // Will be deprecated in future
+    repeated string callsigns = 2;
+    repeated string sources = 3;
+
+    oneof content {
+        SubscribeOperation subscribeOperation = 4;
+        UnsubscribeOperation unsubscribeOperation = 5;
+    }
+}
+
+message SubscribeOperation {
+    repeated SubscribeOption options = 1;
+}
+
+message UnsubscribeOperation {
+    repeated UnsubscribeOption options = 1;
+}
+
+message SubscribeOption {
+    oneof content {
+        ReceiverGroupSubscribeOption receivergroupSubscribeOption = 1;
+    }
+}
+
+message UnsubscribeOption {
+    oneof content {
+        ReceiverGroupUnsubscribeOption receivergroupUnsubscribeOption = 1;
+    }
+}
+
+// Not yet supported in system
+message ReceiverGroupSubscribeOption {
+    int32 startPosition = 1; // Used for indicate the position of data should be reading from
+};
+
+message ReceiverGroupUnsubscribeOption {
+    bool terminate = 1; // Tells system to terminate the receiver group. System should ask agent to stop sending receiver group data
+}
+
+message TelemetryRequestAck {
+}
+
+message RegistrationMessage {
+}
+
+message ServiceStatusRequest {
+}
+
+enum LogicalOperation {
+	OR = 0;
+}
+
+enum ComparisonOperation {
+    EQUAL = 0;
+}
+
+enum PredicateAttribute {
+    TAG = 0;
+}
+
+message Query {
+    LogicalOperation operation = 1;
+    repeated QueryOrPredicate queryOrPredicates = 2; 
+}
+
+message QueryOrPredicate {
+    // Use oneof syntax to reserve the future usage for nested query
+    // TODO: [RA-437] Teletubby - Telemetry - Support nested query inside query  
+    oneof content { 
+        Query query = 1;
+        Predicate predicate = 2;
+    }
+}
+
+message Predicate {
+    PredicateAttribute attribute = 1;
+    ComparisonOperation operation = 2;
+    string value = 3;
+}
+
+message Heartbeat {} // Don't need to carry any info here, since this is just to be sure the connection is still alive (since some gateways may disrupt the usual gRPC keepalive mechanism).
+
+
+

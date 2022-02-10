@@ -21,6 +21,7 @@ import {
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import Echo from './Echo';
+import Teletubby from './Teletubby';
 
 const Section: React.FC<{
   title: string;
@@ -72,6 +73,7 @@ const App = () => {
           </Section>
         </View>
         <Echo />
+        <Teletubby />
       </ScrollView>
     </SafeAreaView>
   );

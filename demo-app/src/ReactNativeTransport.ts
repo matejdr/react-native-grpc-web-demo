@@ -4,7 +4,7 @@ export function ReactNativeTransport(
   init: grpc.XhrTransportInit,
 ): grpc.TransportFactory {
   return (opts: grpc.TransportOptions) => {
-    return new ArrayBufferXHR(opts, init);
+    return new ArrayBufferXHR({...opts, debug: true}, init);
   };
 }
 
@@ -171,12 +171,16 @@ class ArrayBufferXHR extends XHR {
     (this.xhr as any).responseType = 'arraybuffer';
   }
 
-  onProgressEvent() {}
+  onProgressEvent() {
+    this.options.debug &&
+      debug('XHR.onProgressEvent.length: ', this.xhr.response.length);
+  }
 
   onLoadEvent(): void {
     const resp = this.xhr.response;
     this.options.debug &&
       debug('ArrayBufferXHR.onLoadEvent: ', new Uint8Array(resp));
+    this.options.debug && debug('ArrayBufferXHR.onLoadEvent this.xhr: ', this.xhr);
     detach(() => {
       this.options.onChunk(new Uint8Array(resp), /* flush */ true);
     });
