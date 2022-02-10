@@ -1,0 +1,11 @@
+{
+  "name": "react-native-grpc-web-demo",
+  "version": "1.0.0",
+  "dependencies": {
+    "ts-protoc-gen": "^0.12.0"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "author": "",
+  "license": "ISC"
+}
