@@ -8,22 +8,22 @@ import {EchoRequest, EchoResponse} from './lib/echo_pb';
 export default () => {
   const [response, setResponse] = useState<string[]>([]);
 
-  // const setIntervalX = (
-  //   callback: (x: number) => void,
-  //   closeCallback: (x: number) => void,
-  //   delay: number,
-  //   repetitions: number,
-  // ): void => {
-  //   let x = 0;
-  //   const intervalID = setInterval(function () {
-  //     callback(x);
-  //
-  //     if (++x === repetitions) {
-  //       clearInterval(intervalID);
-  //       closeCallback(x);
-  //     }
-  //   }, delay);
-  // };
+  const setIntervalX = (
+    callback: (x: number) => void,
+    closeCallback: (x: number) => void,
+    delay: number,
+    repetitions: number,
+  ): void => {
+    let x = 0;
+    const intervalID = setInterval(function () {
+      callback(x);
+
+      if (++x === repetitions) {
+        clearInterval(intervalID);
+        closeCallback(x);
+      }
+    }, delay);
+  };
 
   async function sendUnaryEcho() {
     try {
@@ -125,29 +125,41 @@ export default () => {
         ]);
       });
 
+      let counter = 1;
       const request = new EchoRequest();
-      request.setMessage('This is BidirectionalStreaming message number: 1.');
+      request.setMessage(
+        `This is BidirectionalStreaming message number: ${counter}.`,
+      );
       bidirectionalStream.write(request);
-      // bidirectionalStream.end();
-      request.setMessage('This is BidirectionalStreaming message number: 2.');
+      counter++;
+      request.setMessage(
+        `This is BidirectionalStreaming message number: ${counter}.`,
+      );
       bidirectionalStream.write(request);
-      // bidirectionalStream.end();
-      request.setMessage('This is BidirectionalStreaming message number: 3.');
+      counter++;
+      request.setMessage(
+        `This is BidirectionalStreaming message number: ${counter}.`,
+      );
       bidirectionalStream.write(request);
-      bidirectionalStream.end();
-      // setIntervalX(
-      //   x => {
-      //     const request = new EchoRequest();
-      //     request.setMessage(`This is message number: ${x}.`);
-      //     bidirectionalStream = bidirectionalStream.write(request);
-      //   },
-      //   x => {
-      //     console.log('closing connection after repeats: ', x);
-      //     bidirectionalStream.end();
-      //   },
-      //   1000,
-      //   2,
-      // );
+      counter++;
+
+      const delay = 3000;
+      setIntervalX(
+        x => {
+          const delayString = Math.floor((delay * (x + 1)) / 1000) + 's';
+          request.setMessage(
+            `This is BidirectionalStreaming message number: ${counter} with delay of ${delayString}.`,
+          );
+          bidirectionalStream.write(request);
+          counter++;
+        },
+        x => {
+          console.log('closing connection after repeats: ', x);
+          bidirectionalStream.end();
+        },
+        delay,
+        2,
+      );
     } catch (e) {
       console.error('error', e);
     }

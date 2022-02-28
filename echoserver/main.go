@@ -106,11 +106,16 @@ func (s *server) ServerStreamingEcho(in *pb.EchoRequest, stream pb.Echo_ServerSt
 
 	// Read requests and send responses.
 	for i := 0; i < streamingCount; i++ {
-		fmt.Printf("echo message %v\n", in.Message)
-		err := stream.Send(&pb.EchoResponse{Message: in.Message})
+		var newMessage = fmt.Sprintf("%d: %s", i, in.Message)
+		if i == streamingCount-1 {
+			newMessage = fmt.Sprintf("Last %s", in.Message)
+		}
+		fmt.Printf("echo message %v\n", newMessage)
+		err := stream.Send(&pb.EchoResponse{Message: newMessage})
 		if err != nil {
 			return err
 		}
+		time.Sleep(1 * time.Second)
 	}
 	return nil
 }
